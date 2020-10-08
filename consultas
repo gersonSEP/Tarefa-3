@@ -1,0 +1,12 @@
+1)  SELECT f.nome
+    FROM funcionario f
+    WHERE f.salario > (
+    SELECT max(f2.salario)
+    FROM funcionario f2
+    WHERE f2."codDepto" = 5);
+
+2)  SELECT nome
+    FROM funcionario
+    WHERE "DtNasc" != (
+    SELECT MIN(f."DtNasc")
+    FROM funcionario f);
