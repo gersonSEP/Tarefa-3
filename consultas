@@ -10,3 +10,22 @@
     WHERE "DtNasc" != (
     SELECT MIN(f."DtNasc")
     FROM funcionario f);
+
+3)  SELECT nome, "DtNasc" FROM funcionario
+    WHERE date_part('year', age("DtNasc")) > 21
+    AND codigo NOT IN (
+    SELECT "codGerente" FROM departamento);
+    
+4)  select nome, salario, "codDepto" from funcionario
+    where codigo not in (
+    select "codGerente" from departamento
+    ) order by "codDepto";
+    
+5)  a)  Quando se definem valores nulos em atributos, poderá ocorrer perda de informações deixando de exibir dados importantes,
+        já que nas consultasna condição de cláusula where os resultados podem ser inconsistentes.
+
+    b)  LEFT JOIN: Retorna todas as linhas da tabela à esquerda, mesmo se não houver nenhuma correspondência na tabela à direita.
+        
+        RIGHT JOIN: Retorna todas as linhas da tabela à direita, mesmo se não houver nenhuma correspondência na tabela à esquerda.
+
+    c)  FULL JOIN: Retorna linhas quando houver uma correspondência em qualquer uma das tabelas. É uma combinação de LEFT e RIGHT JOINS.
