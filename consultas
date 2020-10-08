@@ -16,10 +16,10 @@
     AND codigo NOT IN (
     SELECT "codGerente" FROM departamento);
     
-4)  select nome, salario, "codDepto" from funcionario
-    where codigo not in (
-    select "codGerente" from departamento
-    ) order by "codDepto";
+4)  SELECT nome, salario, "codDepto" FROM funcionario
+    WHERE codigo NOT IN (
+    SELECT "codGerente" FROM departamento
+    ) ORDER BY "codDepto";
     
 5)  a)  Quando se definem valores nulos em atributos, poderá ocorrer perda de informações deixando de exibir dados importantes,
         já que nas consultasna condição de cláusula where os resultados podem ser inconsistentes.
@@ -28,4 +28,116 @@
         
         RIGHT JOIN: Retorna todas as linhas da tabela à direita, mesmo se não houver nenhuma correspondência na tabela à esquerda.
 
-    c)  FULL JOIN: Retorna linhas quando houver uma correspondência em qualquer uma das tabelas. É uma combinação de LEFT e RIGHT JOINS.
+    c)  
+    
+6)  SELECT f.nome, f.salario, d.descricao
+    FROM funcionario f, departamento d
+    WHERE f."codDepto" = d.codigo OR f."codDepto" = NULL;
+    
+7)  CREATE OR REPLACE VIEW public."totalFuncDep"
+    AS
+    SELECT d.codigo AS codigo, COUNT(f.codigo) AS total
+    FROM departamento d, funcionario f
+    WHERE f."codDepto" = d.codigo
+    GROUP BY d.codigo;
+
+    SELECT d.descricao, f.nome, total.total
+    FROM departamento d, funcionario f, "totalFuncDep" total
+    WHERE d."codGerente" = f.codigo AND d.codigo = total.codigo
+    GROUP BY d.codigo, f.nome, total.total
+    ORDER BY d.descricao;
+    
+8)  CREATE OR REPLACE VIEW public."totalProjDep"
+    AS
+    SELECT COUNT(*) AS total, d.codigo AS dep
+    FROM projeto p, departamento d
+    WHERE p."codDepto" = d.codigo
+    GROUP BY d.codigo;
+
+    SELECT d.descricao, f.nome, tot.total
+    FROM departamento d
+    LEFT JOIN funcionario f ON f.codigo = d."codGerente"
+    LEFT JOIN "totalProjDep" tot ON tot.dep = d.codigo;
+    
+9)  CREATE OR REPLACE VIEW public."gerenteDep"
+    AS
+    SELECT f.codigo AS "idGerente", f.salario AS "salarioGerente", d.codigo AS dep
+    FROM funcionario f, departamento d
+    WHERE d."codGerente" = f.codigo;
+
+    CREATE OR REPLACE VIEW public."totalProjFunc"
+    AS
+    SELECT COUNT(*) AS total, f.codigo AS fu FROM funcionario f, projeto proj
+    WHERE f.codigo = proj."codResponsavel"
+    GROUP BY f.codigo;
+
+    SELECT f.nome, tpf.total, f.salario
+    FROM funcionario f, projeto proj, "totalProjFunc" tpf, "gerenteDep" gd
+    WHERE f.codigo = proj."codResponsavel" AND gd."salarioGerente" < f.salario AND gd.dep = proj."codDepto"
+    GROUP BY f.nome, tpf.total, f.salario;
+    
+10) SELECT proj.descricao AS "nomeProj", d.descricao AS "departamentoProj",
+    f.nome "nomeResp", d2.descricao "departamentoFunc"
+    FROM projeto proj LEFT JOIN departamento d
+    ON proj."codDepto" = d.codigo
+    LEFT JOIN funcionario f
+    ON f.codigo = proj."codResponsavel"
+    LEFT JOIN departamento d2
+    ON f."codDepto" = d2.codigo;
+    
+11) SELECT proj.descricao AS "nomeProj", d.descricao AS "departamentoProj",
+    f.nome "nomeResp", d2.descricao "departamentoFunc"
+    FROM projeto proj LEFT JOIN departamento d
+    ON proj."codDepto" = d.codigo
+    LEFT JOIN funcionario f
+    ON f.codigo = proj."codResponsavel"
+    LEFT JOIN departamento d2
+    ON f."codDepto" = d2.codigo
+    WHERE proj."codDepto" != f."codDepto";
+    
+12) SELECT proj.descricao AS "nomeProj", proj."dataIni" "inicioProj", proj."dataFim" AS "fimProj",
+    ativ."dataIni" AS "inicioAtiv", ativ."dataFim" AS "limiteAtiv"
+    FROM projeto proj LEFT JOIN "atividadeProj" ativ
+    ON ativ."codProjeto" = proj.codigo;
+    
+13) SELECT proj.descricao AS "nomeProj", proj."dataIni" "inicioProj", proj."dataFim" AS "fimProj",
+    ativ."dataIni" AS "inicioAtiv", ativ."dataFim" AS "limiteAtiv"
+    FROM projeto proj LEFT JOIN "atividadeProj" ativ
+    ON ativ."codProjeto" = proj.codigo AND (ativ."dataIni" < proj."dataIni" OR ativ."dataFim" > proj."dataFim")
+    GROUP BY proj.descricao, proj."dataIni", proj."dataFim", ativ."dataIni", ativ."dataFim";
+    
+14) CREATE OR REPLACE VIEW public."codigoRespAtiv"
+    AS
+    SELECT atv."codResponsavel" FROM "atividadeProj" ativ;
+
+    SELECT nome, count(f.codigo) FROM funcionario f
+    WHERE f.codigo IN (
+    SELECT * FROM "codigoRespAtiv")
+    GROUP BY f.codigo;
+    
+15) CREATE OR REPLACE VIEW public."totalAtivProj"
+    AS
+    SELECT proj.codigo AS pr, count(proj.codigo) AS total FROM projeto proj, "atividadeProj" ativ
+    WHERE ativ."codProjeto" = proj.codigo
+    GROUP BY proj.codigo;
+
+    SELECT proj.descricao, f.nome, tot.total FROM funcionario f, projeto proj, "totalAtivProj" tot
+    WHERE f.codigo = proj."codResponsavel" AND tot.pr = proj.codigo;
+    
+16) SELECT f.nome FROM funcionario f, departamento d, projeto proj, "gerenteDep" gd
+    WHERE f.codigo = d."codGerente" AND ((f.codigo = proj."codResponsavel" AND d.codigo = proj."codDepto") OR
+    (f.salario > gd."salarioGer" AND f."codDepto" = gd.dep))
+    GROUP BY f.nome;
+    
+17) SELECT proj.codigo, proj.descricao FROM projeto proj, departamento d, "gerenteDep" gd
+    WHERE gd.dep = d.codigo AND proj."codDepto" = d.codigo AND gd."idGerente" = proj."codResponsavel" AND gd."salarioGer" >=
+    (SELECT MAX("salarioGer") FROM "gerenteDep");
+    
+18) SELECT f.nome, d.descricao FROM funcionario f, departamento d
+    WHERE f.salario IN (
+    SELECT MAX(f.salario)
+    FROM funcionario f LEFT JOIN departamento d
+    ON f."codDepto" = d.codigo GROUP BY d.codigo)
+    AND f."codDepto" = d.codigo
+    GROUP BY f.salario, f.nome, d.descricao
+    ORDER BY f.salario;
